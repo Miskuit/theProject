@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include <assert.h>
 
+typedef struct _game {
+
+} game;
+
 int main (int argc, char *argv[]) {
    Game g = newGame(DEFAULT_DISCIPLINES, DEFAULT_DICE);
    assert(getTurnNumber(g) == -1);
