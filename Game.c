@@ -8,6 +8,9 @@
 #define MAX_TILES 19
 #define MAX_VERTICES 53
 
+typedef struct _player player;
+typedef struct _tile tile;
+
 typedef struct _vertice {
    player *campus;
    tile *tile;
@@ -19,12 +22,12 @@ typedef struct _edge {
    tile *tile;
 } edge;
 
-typedef struct _tile {
+struct _tile {
    int x, y, z;
    int score;
    edge *edges[HEXAGON_SIDES];
    vertice *vertices[HEXAGON_SIDES];
-} tile;
+};
 
 typedef struct _studentTypes {
    int bThinking;
@@ -41,20 +44,20 @@ typedef struct _playerStats {
    int publications;
 } playerStats;
 
-typedef struct _player {
+struct _player {
    int playerID;
    vertice *campuses[MAX_VERTICES];
    studentTypes students;
    playerStats stats;
-} player;
+};
 
-typedef struct gameStats {
+typedef struct _gameStats {
    player *maxPoints;
    player *maxArcGrants;
    player *maxPublications;
    int turnNumber;
-   int numG08s;
-}
+   int numGO8s;
+} gameStats;
 
 typedef struct _game {
    player players[MAX_PLAYERS];
