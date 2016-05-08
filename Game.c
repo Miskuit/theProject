@@ -2,12 +2,65 @@
 #include <stdlib.h>
 #include "Game.h"
 
+#define HEXAGON_SIDES 6
+
+#define MAX_PLAYERS 3
+#define MAX_TILES 19
+#define MAX_VERTICES 53
+
+typedef struct _vertice {
+   player *campus;
+   tile *tile;
+   int campusType;
+} vertice;
+
+typedef struct _edge {
+   int arcGrant;
+   tile *tile;
+} edge;
+
+typedef struct _tile {
+   int x, y, z;
+   int score;
+   edge *edges[HEXAGON_SIDES];
+   vertice *vertices[HEXAGON_SIDES];
+} tile;
+
+typedef struct _studentTypes {
+   int bThinking;
+   int bProblemSolving;
+   int bHowThinksWorks;
+   int bJobs;
+   int bTVJobs;
+   int bMoney;
+} studentTypes;
+
+typedef struct _playerStats {
+   int points;
+   int arcGrants;
+   int publications;
+} playerStats;
+
+typedef struct _player {
+   int playerID;
+   vertice *campuses[MAX_VERTICES];
+   studentTypes students;
+   playerStats stats;
+} player;
+
+typedef struct gameStats {
+   player *maxPoints;
+   player *maxArcGrants;
+   player *maxPublications;
+}
+
 typedef struct _game {
-
-
+   player players[MAX_PLAYERS];
+   tile board[MAX_TILES];
+   gameStats stats;
 } game;
 
-Game newGame (int discipline[], int dice[]) {
+Game newGame (int disciplines[], int dice[]) {
 
 }
 
