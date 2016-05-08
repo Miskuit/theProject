@@ -52,6 +52,8 @@ typedef struct gameStats {
    player *maxPoints;
    player *maxArcGrants;
    player *maxPublications;
+   int turnNumber;
+   int numG08s;
 }
 
 typedef struct _game {
