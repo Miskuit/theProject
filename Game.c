@@ -53,6 +53,7 @@ typedef struct _playerStats {
    int points;
    int arcGrants;
    int publications;
+   int IPs;
 } playerStats;
 
 struct _player {
