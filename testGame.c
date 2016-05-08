@@ -14,7 +14,7 @@ int main (int argc, char *argv[]) {
    assert(getTurnNumber(g) == -1);
    assert(getMostARCs(g) == 0);
    assert(getMostPublications(g) == 0);
-
+   printf("TEST");
    int region = 0;
 
    //Test initial conditions for each player

@@ -1,12 +1,14 @@
 # depslib dependency file v1.0
-1462686701 source:c:\users\jack\documents\programming\comp1917\theproject\game.c
+1462698544 source:c:\users\jack\documents\programming\comp1917\theproject\game.c
 	<stdio.h>
 	<stdlib.h>
+	<assert.h>
+	<stddef.h>
 	"Game.h"
 
 1462687628 c:\users\jack\documents\programming\comp1917\theproject\game.h
 
-1462687954 source:c:\users\jack\documents\programming\comp1917\theproject\testgame.c
+1462696916 source:c:\users\jack\documents\programming\comp1917\theproject\testgame.c
 	<stdio.h>
 	<stdlib.h>
 	<assert.h>
