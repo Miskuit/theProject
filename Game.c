@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <stddef.h>
 #include "Game.h"
 
 #define HEXAGON_SIDES 6
@@ -10,12 +9,6 @@
 #define MAX_TILES 19
 #define MAX_VERTICES 54
 #define MAX_EDGES 72
-
-//Max and min values for tile co-ordinates
-#define X_MIN -2
-#define X_MAX 2
-#define Y_MIN -2
-#define Y_MAX 2
 
 //DIRECTIONS
 #define ACROSS 0
