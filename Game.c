@@ -8,9 +8,8 @@
 
 #define MAX_PLAYERS 3
 #define MAX_TILES 19
-#define MAX_TILES_PER_EDGE 2
-#define MAX_TILES_PER_VERTICE 3
-#define MAX_VERTICES 53
+#define MAX_VERTICES 54
+#define MAX_EDGES 72
 
 //Max and min values for tile co-ordinates
 #define X_MIN -2
@@ -18,26 +17,42 @@
 #define Y_MIN -2
 #define Y_MAX 2
 
+//DIRECTIONS
+#define ACROSS 0
+#define ACROSS_X 2
+#define ACROSS_Y 0
+
+#define ANGLE_LEFT 1
+#define ANGLE_LEFT_X -1
+#define ANGLE_LEFT_Y 1
+
+#define ANGLE_RIGHT 2
+#define ANGLE_RIGHT_X 1
+#define ANGLE_RIGHT_Y 1
+
 typedef struct _player player;
 typedef struct _tile tile;
 
+typedef struct _pos {
+   double x;
+   double y;
+} pos;
+
 typedef struct _vertice {
    player *campus;
-   tile *tiles[MAX_TILES_PER_VERTICE];
+   pos position;
    int campusType;
 } vertice;
 
 typedef struct _edge {
    int arcGrant;
-   tile *tiles[MAX_TILES_PER_EDGE];
+   pos position;
 } edge;
 
 struct _tile {
-   int x, y;
+   pos position;
    int discipline;
    int score;
-   edge *edges[HEXAGON_SIDES];
-   vertice *vertices[HEXAGON_SIDES];
 };
 
 typedef struct _studentTypes {
@@ -73,15 +88,17 @@ typedef struct _gameStats {
 
 typedef struct _game {
    player players[MAX_PLAYERS];
-   tile board[MAX_TILES];
+   tile tiles[MAX_TILES];
+   edge edges[MAX_EDGES];
+   vertice vertices[MAX_VERTICES];
    gameStats stats;
 } game;
 
 void buildBoard(Game g, int disciplines[], int dice[]);
-int getConnectedTilesToEdge(edge *given);
-tile *getTile(Game g, int x, int y);
-tile *getTileDirection(Game g, tile *given, int direction);
-void initialiseBoard(Game g);
+int buildHexagonVertices(Game g, tile *tile, int startIndex);
+pos getNewPosition(pos position, int direction, int isNegative);
+vertice *getVertice(Game g, pos position);
+int verticeExists(Game g, pos position);
 
 //////////////////////
 //New Game Functions//
@@ -90,95 +107,106 @@ void initialiseBoard(Game g);
 //Converts our given disciplines and dice numbers into our board
 //format. (i.e. our x, y co-ordinate system)
 void buildBoard(Game g, int disciplines[], int dice[]) {
-   int x = -2;
-   int y = 0;
+   double x = -6;
+   double y = 2;
    int i = 0;
+   int verticeIndex = 0;
+   int rValue = 0;
    while (i < MAX_TILES) {
       if (i == 0) { }
        else if (i == 3) {
-         x = -1;
-         y = -1;
+         x = -3;
+         y = 3;
       } else if (i == 7) {
          x = 0;
-         y = -2;
+         y = 4;
       } else if (i == 12) {
-         x = 1;
-         y = -2;
+         x = 3;
+         y = 3;
       } else if (i == 16) {
-         x = 2;
-         y = -2;
+         x = 6;
+         y = 2;
       } else {
-         y++;
+         y = y - 2;
       }
-      g->board[i].x = x;
-      g->board[i].y = y;
-      g->board[i].discipline = disciplines[i];
-      g->board[i].score = dice[i];
+      g->tiles[i].position.x = x;
+      g->tiles[i].position.y = y;
+      g->tiles[i].discipline = disciplines[i];
+      g->tiles[i].score = dice[i];
+      rValue = buildHexagonVertices(g, &g->tiles[i], verticeIndex);
+      verticeIndex = rValue;
       i++;
    }
+   printf("Built %d hexagons and %d vertices.\n", i, verticeIndex);
+
 }
 
-int getConnectedTilesToEdge(edge *given) {
-   //WORK IN PROGRESS
-   return 0;
-}
-
-tile *getTile(Game g, int x, int y) {
+int buildHexagonVertices(Game g, tile *tile, int startIndex) {
    int i = 0;
-   tile *result = NULL;
-   while (i < MAX_TILES) {
-      if (g->board[i].x == x && g->board[i].y == y) {
-         result = &g->board[i];
+   int j = 0;
+   pos newPos;
+   while (i < 3) {
+      while (j < 2) {
+         newPos = getNewPosition(tile->position, i, j);
+         if (!verticeExists(g, newPos)) {
+            g->vertices[startIndex].position = newPos;
+            startIndex++;
+         }
+         j++;
       }
+      j = 0;
       i++;
    }
-   return result;
-}
-
-//Returns an adjacent tile, given a direction (where 0 means it
-//shares its upper side, going around clockwise to 5
-tile *getTileDirection(Game g, tile *given, int direction) {
-   int x = (*given).x;
-   int y = (*given).y;
-   if (direction == 0) {
-      y--;
-   } else if (direction == 1) {
-      x++;
-      y--;
-   } else if (direction == 2) {
-      x++;
-   } else if (direction == 3) {
-      y++;
-   } else if (direction == 4) {
-      x--;
-      y++;
-   } else {
-      x--;
-   }
-   return getTile(g, x, y);
-}
-
-void initialiseBoard(Game g) {
-   int i = 0;
-   while (i < MAX_TILES) {
-      int i2 = 0;
-      //tile *direction;
-      while (i2 < HEXAGON_SIDES) {
-         //direction = getTileDirection(g, &g->board[i], i2);
-         //int cTiles = getConnectedTilesToEdge(g->board[i].edges[i2]);
-         //WORK IN PROGRESS
-         i2++;
-      }
-      i++;
-   }
+   //printf("Built hexagon at (%lf, %lf).\n", tile->position.x, tile->position.y);
+   return startIndex;
 }
 
 Game newGame (int disciplines[], int dice[]) {
    Game created = malloc(sizeof(game));
    assert(created != NULL);
    buildBoard(created, disciplines, dice);
-   initialiseBoard(created);
    return created;
+}
+
+pos getNewPosition(pos position, int direction, int isNegative) {
+   pos relPos = { 0 , 0 };
+   if (direction == ACROSS) {
+      relPos.x += (double)ACROSS_X;
+      relPos.y += (double)ACROSS_Y;
+   } else if (direction == ANGLE_LEFT) {
+      relPos.x += (double)ANGLE_LEFT_X;
+      relPos.y += (double)ANGLE_LEFT_Y;
+   } else {
+      relPos.x += (double)ANGLE_RIGHT_X;
+      relPos.y += (double)ANGLE_RIGHT_Y;
+   }
+   if (isNegative) {
+      relPos.x *= -1.0;
+      relPos.y *= -1.0;
+   }
+   position.x += relPos.x;
+   position.y += relPos.y;
+   return position;
+}
+
+vertice *getVertice(Game g, pos position) {
+   int i = 0;
+   vertice *select = NULL;
+   while (i < MAX_VERTICES) {
+      select = &g->vertices[i];
+      if (select != NULL && select->position.x == position.x && select->position.y == position.y) {
+         i = MAX_VERTICES;
+      } else {
+         select = NULL;
+      }
+      i++;
+   }
+   return select;
+}
+
+int verticeExists(Game g, pos position) {
+   vertice *test = getVertice(g, position);
+   return (test != NULL);
 }
 
 /////////////////////
