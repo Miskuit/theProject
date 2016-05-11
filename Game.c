@@ -10,6 +10,9 @@
 #define MAX_VERTICES 54
 #define MAX_EDGES 72
 
+#define FALSE 0
+#define TRUE 1
+
 //DIRECTIONS
 #define ACROSS 0
 #define ACROSS_X 2
@@ -88,9 +91,17 @@ typedef struct _game {
 } game;
 
 void buildBoard(Game g, int disciplines[], int dice[]);
+int buildHexagonEdges(Game g, tile *tile, int startIndex);
 int buildHexagonVertices(Game g, tile *tile, int startIndex);
+edge *getEdge(Game g, pos p);
+edge *getHexagonEdge(Game g, tile *tile, int index);
+pos getHexagonEdgePosition(Game g, tile *tile, int index);
+vertice *getHexagonVertice(Game g, tile *tile, int index);
+pos getHexagonVerticePosition(Game g, tile *tile, int index);
 pos getNewPosition(pos position, int direction, int isNegative);
 vertice *getVertice(Game g, pos position);
+int edgeExists(Game g, pos p);
+pos midpoint(pos p1, pos p2);
 int verticeExists(Game g, pos position);
 
 //////////////////////
@@ -104,7 +115,7 @@ void buildBoard(Game g, int disciplines[], int dice[]) {
    double y = 2;
    int i = 0;
    int verticeIndex = 0;
-   int rValue = 0;
+   int edgeIndex = 0;
    while (i < MAX_TILES) {
       if (i == 0) { }
        else if (i == 3) {
@@ -126,12 +137,27 @@ void buildBoard(Game g, int disciplines[], int dice[]) {
       g->tiles[i].position.y = y;
       g->tiles[i].discipline = disciplines[i];
       g->tiles[i].score = dice[i];
-      rValue = buildHexagonVertices(g, &g->tiles[i], verticeIndex);
-      verticeIndex = rValue;
+      verticeIndex = buildHexagonVertices(g, &g->tiles[i], verticeIndex);
+      edgeIndex = buildHexagonEdges(g, &g->tiles[i], edgeIndex);
       i++;
    }
-   printf("Built %d hexagons and %d vertices.\n", i, verticeIndex);
+   printf("Built %d hexagons, %d vertices and %d edges.\n", i, verticeIndex, edgeIndex);
 
+}
+
+int buildHexagonEdges(Game g, tile *tile, int startIndex) {
+    int i = 0;
+    pos edgePos;
+    while (i < HEXAGON_SIDES) {
+      edgePos = getHexagonEdgePosition(g, tile, i);
+      if (!edgeExists(g, edgePos)) {
+         g->edges[startIndex].position = edgePos;
+         startIndex++;
+
+      }
+      i++;
+    }
+    return startIndex;
 }
 
 int buildHexagonVertices(Game g, tile *tile, int startIndex) {
@@ -150,12 +176,11 @@ int buildHexagonVertices(Game g, tile *tile, int startIndex) {
       j = 0;
       i++;
    }
-   //printf("Built hexagon at (%lf, %lf).\n", tile->position.x, tile->position.y);
    return startIndex;
 }
 
 Game newGame (int disciplines[], int dice[]) {
-   Game created = malloc(sizeof(game));
+   Game created = malloc(sizeof(struct _game));
    assert(created != NULL);
    buildBoard(created, disciplines, dice);
    return created;
@@ -182,6 +207,58 @@ pos getNewPosition(pos position, int direction, int isNegative) {
    return position;
 }
 
+edge *getEdge(Game g, pos p) {
+   int i = 0;
+   edge *select = NULL;
+   while (i < MAX_EDGES) {
+      select = &g->edges[i];
+      if (select != NULL && select->position.x == p.x && select->position.y == p.y) {
+         i = MAX_EDGES;
+      } else {
+         select = NULL;
+      }
+      i++;
+   }
+   return select;
+}
+
+edge *getHexagonEdge(Game g, tile *tile, int index) {
+   return getEdge(g, getHexagonEdgePosition(g, tile, index));
+}
+
+pos getHexagonEdgePosition(Game g, tile *tile, int index) {
+   assert(index <= HEXAGON_SIDES);
+   return midpoint(getHexagonVerticePosition(g, tile, index), getHexagonVerticePosition(g, tile, (index+1)));
+}
+
+vertice *getHexagonVertice(Game g, tile *tile, int index) {
+   return getVertice(g, getHexagonVerticePosition(g, tile, index));
+}
+
+pos getHexagonVerticePosition(Game g, tile *tile, int index) {
+   int dir, isNegative;
+   if (index == 0 || index == 6) {
+      dir = ANGLE_LEFT;
+      isNegative = FALSE;
+   } else if (index == 1) {
+      dir = ANGLE_RIGHT;
+      isNegative = FALSE;
+   } else if (index == 2) {
+      dir = ACROSS;
+      isNegative = FALSE;
+   } else if (index == 3) {
+      dir = ANGLE_LEFT;
+      isNegative = TRUE;
+   } else if (index == 4) {
+      dir = ANGLE_RIGHT;
+      isNegative = TRUE;
+   } else {
+      dir = ACROSS;
+      isNegative = TRUE;
+   }
+   return getNewPosition(tile->position,dir,isNegative);
+}
+
 vertice *getVertice(Game g, pos position) {
    int i = 0;
    vertice *select = NULL;
@@ -195,6 +272,18 @@ vertice *getVertice(Game g, pos position) {
       i++;
    }
    return select;
+}
+
+int edgeExists(Game g, pos p) {
+   edge *test = getEdge(g, p);
+   return (test != NULL);
+}
+
+pos midpoint(pos p1, pos p2) {
+   pos mid;
+   mid.x = (p1.x + p2.x)/2;
+   mid.y = (p1.y + p2.y)/2;
+   return mid;
 }
 
 int verticeExists(Game g, pos position) {
