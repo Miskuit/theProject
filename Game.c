@@ -3,6 +3,7 @@
 #include <assert.h>
 #include "Game.h"
 
+//VERTICE TYPES
 #define ODD 0
 #define EVEN 1
 
@@ -185,6 +186,7 @@ double gradient (pos start, pos finish);
 int edgeExists(Game g, pos p);
 int hasAdjacentCampus(Game g, vertice *v);
 int hasStudents(player *p, int actionCode);
+int isValidPath(Game g, path p);
 pos midpoint(pos p1, pos p2);
 pos negative (pos p);
 pos relativePos(pos p1, pos p2);
@@ -197,6 +199,7 @@ void testInternals (Game g);
 int verticeExists(Game g, pos position);
 void updateMaximums(Game g, player *p);
 
+//Returns the absolugte value of the double x
 double absolute(double x) {
    if (x < 0) {
       x *= -1;
@@ -204,24 +207,11 @@ double absolute(double x) {
    return x;
 }
 
-void appendPath(path *given, path *add) {
-   int i = 0;
-   while ((*given)[i] != 0 && i < PATH_LIMIT) {
-      i++;
-   }
-   int j = 0;
-   while ((*given)[j] != 0 && ((i + j - 1) < PATH_LIMIT)) {
-      (*given)[i + j] = (*add)[j];
-      j++;
-   }
-   (*given)[i+j] = 0;
-}
-
-//////////////////////
-//New Game Functions//
-//////////////////////
-
+//Builds an ARC for player p at edge e
 void buildARC(Game g, player *p, edge *e) {
+   assert(p != NULL && e != NULL);
+   //Set the edge to point to the player and
+   //increment their number of grants
    e->arcGrant = p;
    p->stats.arcGrants++;
 }
@@ -251,10 +241,12 @@ void buildBoard(Game g, int disciplines[], int dice[]) {
       } else {
          y = y - 2;
       }
+      //Set all of our tile descriptors
       g->tiles[i].position.x = x;
       g->tiles[i].position.y = y;
       g->tiles[i].discipline = disciplines[i];
       g->tiles[i].score = dice[i];
+      //Build unique vertices and edges about our tile
       verticeIndex = buildHexagonVertices(g, &g->tiles[i], verticeIndex);
       edgeIndex = buildHexagonEdges(g, &g->tiles[i], edgeIndex);
       i++;
@@ -262,14 +254,20 @@ void buildBoard(Game g, int disciplines[], int dice[]) {
    printf("Built %d hexagons, %d vertices and %d edges.\n", i, verticeIndex, edgeIndex);
 }
 
+//Build a campus for player p at vertice v of type campusType
 void buildCampus(Game g, player *p, vertice *v, int campusType) {
    assert(p != NULL && v != NULL);
    v->campus = p;
    v->campusType = campusType;
    p->campuses[p->stats.campuses] = v;
    p->stats.campuses++;
+   if (campusType == GO8_CAMPUS) {
+      g->stats.numGO8s++;
+   }
 }
 
+//Build all the edges for a tile, given an index to start
+//in the Game edge array
 int buildHexagonEdges(Game g, tile *tile, int startIndex) {
     int i = 0;
     pos edgePos;
@@ -286,6 +284,8 @@ int buildHexagonEdges(Game g, tile *tile, int startIndex) {
     return startIndex;
 }
 
+//Build all the vertices for a tile, given an index to start
+//in the Game vertice array
 int buildHexagonVertices(Game g, tile *tile, int startIndex) {
    direction dir = { 0, 0 };
    pos newPos;
@@ -308,6 +308,7 @@ int buildHexagonVertices(Game g, tile *tile, int startIndex) {
    return startIndex;
 }
 
+//Set the starting locations for the players
 void buildInitialCampuses(Game g) {
    pos positions[MAX_PLAYERS] = { CAMPUS_A_START, CAMPUS_B_START, CAMPUS_C_START };
    int i = 0;
@@ -318,6 +319,7 @@ void buildInitialCampuses(Game g) {
    }
 }
 
+//Set the initial conditions for the game as specified
 void buildInitialConditions(Game g) {
    g->stats.turnNumber = INITIAL_TURN;
    int i = 0;
@@ -338,26 +340,27 @@ void buildInitialConditions(Game g) {
    g->stats.maxArcGrants = &g->players[NO_ONE];
    g->stats.maxPoints = &g->players[NO_ONE];
    g->stats.maxPublications = &g->players[NO_ONE];
+   g->stats.whoseTurn = &g->players[UNI_A];
    buildRetrainingCentres(g);
    buildInitialCampuses(g);
    calculateAllPoints(g);
 }
 
+//Set vertices that have access to retraining centres
 void buildRetrainingCentres(Game g) {
    pos locations[RETRAINING_VERTICES] = { RT_BPROBLEMSOLVING_1, RT_BPROBLEMSOLVING_2, RT_BHOWTHINGSWORK_1, RT_BHOWTHINGSWORK_2, RT_BJOBS_1, RT_BJOBS_2, RT_BTVJOBS_1, RT_BTVJOBS_2, RT_BMONEY_1, RT_MONEY_2 };
    int i = 0;
    vertice *v;
    while (i < RETRAINING_VERTICES) {
-      //printf("Getting at %lf %lf.\n", locations[i+1].x, locations[i+1].y);
       v = getVertice(g, locations[i+1]);
-      if (v == NULL) { printf("FUCK"); }
+      assert(v != NULL);
       getVertice(g, locations[i])->tradingType = (i + 2)/2;
       getVertice(g, locations[i+1])->tradingType = (i + 2)/2;
-      //printf("BUILT RETRAINING");
       i+= 2;
    }
 }
 
+//Determine how many GO8s a particular player has
 int calculateGO8s(player *p) {
    int count = 0;
    int i = 0;
@@ -370,6 +373,7 @@ int calculateGO8s(player *p) {
    return count;
 }
 
+//Re-calculate and set all the points for players in the game
 void calculateAllPoints(Game g) {
    int i = 1;
    while (i <= MAX_PLAYERS) {
@@ -378,6 +382,7 @@ void calculateAllPoints(Game g) {
    }
 }
 
+//Re-calculate and set the points for a particular player
 void calculatePoints(Game g, player *p) {
    int points = 0;
    points += p->stats.campuses * 10;
@@ -393,6 +398,7 @@ void calculatePoints(Game g, player *p) {
    p->stats.points = points;
 }
 
+//Determine whether a campus exists at a point.
 int campusExists(vertice *v) {
    return (v != NULL && v->campusType != VACANT_VERTEX);
 }
@@ -420,19 +426,9 @@ double distanceSquared(pos p) {
    return (p.x * p.x + p.y * p.y);
 }
 
-pos negative (pos p) {
-   p.x *= -1;
-   p.y *= -1;
-   return p;
-}
-
-Game newGame (int disciplines[], int dice[]) {
-   Game created = malloc(sizeof(struct _game));
-   assert(created != NULL);
-   buildBoard(created, disciplines, dice);
-   buildInitialConditions(created);
-   testInternals(created);
-   return created;
+int edgeExists(Game g, pos p) {
+   edge *test = getEdge(g, p);
+   return (test != NULL);
 }
 
 direction getDirection(pos from, pos to) {
@@ -566,11 +562,6 @@ vertice *getVerticeFromPath(Game g, path p) {
    return getVertice(g, takeTurns(from, current, p));
 }
 
-int edgeExists(Game g, pos p) {
-   edge *test = getEdge(g, p);
-   return (test != NULL);
-}
-
 int hasAdjacentCampus(Game g, vertice *v) {
    int hasCampus = FALSE;
    direction dCheck = { 0, 0 };
@@ -588,17 +579,20 @@ int hasAdjacentCampus(Game g, vertice *v) {
    return hasCampus;
 }
 
-//INCOMPLETE
 int hasAdjacentStructure(Game g, player *p, line l) {
    int hasStructure = FALSE;
    direction dCheck = { 0, 0 };
    vertice *v;
+   edge *e;
    int i = 0;
    while (i < 2) {
       if (i == 0) {
-         v = getVertice(g, point1);
+         v = getVertice(g, l.point1);
       } else {
-         v = getVertice(g, point2);
+         v = getVertice(g, l.point2);
+      }
+      if (v == NULL && v->campusType != VACANT_VERTEX && v->campus == p) {
+         hasStructure = TRUE;
       }
       while (dCheck.type < 3) {
          if (dCheck.type == ANGLE_RIGHT) {
@@ -606,11 +600,18 @@ int hasAdjacentStructure(Game g, player *p, line l) {
          } else {
             dCheck.reversed = !v->verticeType;
          }
+         if (v != NULL) {
+            e = getEdge(g, midpoint(v->position, getNewPosition(v->position, dCheck)));
+            if (e != NULL && e->arcGrant == p) {
+               hasStructure = TRUE;
+            }
+         }
          dCheck.type++;
       }
       dCheck.type = 0;
       dCheck.reversed = 0;
    }
+   return hasStructure;
 }
 
 int hasStudents(player *p, int actionCode) {
@@ -639,7 +640,20 @@ int hasStudents(player *p, int actionCode) {
 }
 
 int isValidPath(Game g, path p) {
-   return FALSE;
+   int isValid = TRUE;
+   pos from = INITIAL_DIR_POS;
+   pos current = CAMPUS_A_START;
+   pos future;
+   int i = 0;
+   while (i < PATH_LIMIT && p[i] != 0) {
+      future = takeTurn(from, current, p[i]);
+      if (getVertice(g, future) == NULL) {
+         isValid = FALSE;
+      }
+      from = current;
+      current = future;
+   }
+   return isValid;
 }
 
 pos midpoint(pos p1, pos p2) {
@@ -647,6 +661,12 @@ pos midpoint(pos p1, pos p2) {
    mid.x = (p1.x + p2.x)/2;
    mid.y = (p1.y + p2.y)/2;
    return mid;
+}
+
+pos negative (pos p) {
+   p.x *= -1;
+   p.y *= -1;
+   return p;
 }
 
 pos relativePos(pos p1, pos p2) {
@@ -772,8 +792,6 @@ void updateMaximums(Game g, player *p) {
    calculatePoints(g, old);
 }
 
-////////////////////
-
 int verticeExists(Game g, pos position) {
    vertice *test = getVertice(g, position);
    return (test != NULL);
@@ -811,6 +829,15 @@ void makeAction (Game g, action a) {
       p->students[a.disciplineTo]++;
    } else { }
    updateMaximums(g, p);
+}
+
+Game newGame (int disciplines[], int dice[]) {
+   Game created = malloc(sizeof(struct _game));
+   assert(created != NULL);
+   buildBoard(created, disciplines, dice);
+   buildInitialConditions(created);
+   testInternals(created);
+   return created;
 }
 
 //COMPLETED
@@ -884,11 +911,11 @@ int getARC(Game g, path pathToEdge) {
 int isLegalAction (Game g, action a) {
    int isLegal = TRUE;
    player *p = g->stats.whoseTurn;
-   if (g->stats.turnNumber == INITIAL_TURN || !hasStudents(p, a.actionCode)) {
+   if (g->stats.turnNumber == INITIAL_TURN || !hasStudents(p, a.actionCode) || !isValidPath(g, a.destination)) {
       isLegal = FALSE;
    } else {
-      if (a.actionCode == PASS) { }
-      else if (a.actionCode == BUILD_CAMPUS || a.actionCode == BUILD_GO8) {
+      if (a.actionCode == PASS) {
+      } else if (a.actionCode == BUILD_CAMPUS || a.actionCode == BUILD_GO8) {
          vertice *v = getVerticeFromPath(g, a.destination);
          if (hasAdjacentCampus(g, v) || v->campus != p) {
             isLegal = FALSE;
@@ -909,9 +936,11 @@ int isLegalAction (Game g, action a) {
          if (e->arcGrant != NULL) {
             isLegal = FALSE;
          }
+         if (!hasAdjacentStructure(g, p, l)) {
+            isLegal = FALSE;
+         }
          //WORKING ON THIS SECTION
       } else if (a.actionCode == START_SPINOFF) {
-
       } else if (a.actionCode == OBTAIN_PUBLICATION) {
          isLegal = FALSE;
       } else if (a.actionCode == OBTAIN_IP_PATENT) {
